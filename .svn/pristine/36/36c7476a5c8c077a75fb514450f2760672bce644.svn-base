@@ -1,0 +1,17 @@
+spring.datasource.url=jdbc:mysql://10.100.5.101:3306/etisalatappstore
+#spring.datasource.url=jdbc:mysql://192.168.1.198:3306/etisalatappstore
+
+spring.datasource.username=root
+#spring.datasource.password=dpt20et10b
+spring.datasource.password=R00t@!@#$
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+#spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+hibernate.dialect=org.hibernate.dialect.MySQLDialect
+hibernate.show_sql=true
+hibernate.format_sql=true
+server.port=8081
+#spring.application.name=MisInterface
+#server.context-path=/MisInterface
+spring.mvc.view.prefix: /WEB-INF/views/
+spring.mvc.view.suffix: .jsp
+server.error.whitelabel.enabled=false

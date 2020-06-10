@@ -1,0 +1,307 @@
+package com.oredoo.controller;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.oredoo.entity.IUserDetail;
+import com.oredoo.entity.misuser;
+import com.oredoo.service.LoginService;
+import com.oredoo.service.portalService;
+
+@Controller
+/*
+ * @RequestMapping(value = "/MisInterface", method = RequestMethod.GET)
+ */
+public class MISController {
+	private static final Logger LOGGER = LogManager.getLogger(MISController.class);
+	/*
+	 * @Value("${server.context-path}") String contextPath;
+	 */
+
+	@Autowired
+	LoginService objService;
+	@Autowired
+	private portalService objportalService;
+
+	@RequestMapping(value = "/test", method = RequestMethod.GET)
+	public String signroot(Model model) {
+
+		/*
+		 * BCryptPasswordEncoder bcd = new BCryptPasswordEncoder(10);
+		 * System.out.println(bcd.matches("atpl@123",
+		 * "$2a$10$71h85dBZ5LvrSSoYn09g8.xUG6eu0sscyurTAuiYqLklotW4CkEfC"));
+		 * System.out.println(bcd.encode("atpl@123"));
+		 */
+
+		return "index";
+	}
+
+	@RequestMapping(value = "/misdetails", method = RequestMethod.POST)
+	public String getmisData(Model model, HttpSession session, @RequestParam("partner") String partner,
+			@RequestParam("dateval") String month, @RequestParam("dateval2") String month2,
+			@RequestParam("type") Integer type, @RequestParam("source") Integer source) {
+		if (session.getAttribute("success") == null) {
+			LOGGER.error("/misdetails -Session Closed Already-Please Login again  !!!");
+
+			model.addAttribute("error", "Please Login here  !!!");
+			return "index";
+
+		}
+		if (partner.equals("") || partner == null || partner.equals("null")) {
+			LOGGER.error("/misdetails -Session Closed Already No parner value-Please Login again  !!!");
+			model.addAttribute("error", "Please Login here  !!!");
+
+			return "index";
+		}
+		LOGGER.info("| partner |" + partner + " |dateFrom| " + month + "| dateTO |" + month2 + " |type| " + type);
+		List<Object> objGetMISData = new ArrayList<Object>();
+		///////////////////////////
+		List<Object> objGetMISData2 = new ArrayList<Object>();
+		List<Object> objGetMISDataweb = new ArrayList<Object>();
+
+		List<misuser> misuser = new ArrayList<misuser>();
+
+		LOGGER.info("GOING FOR TYPE CHECK");
+
+		if (type == 2) {
+			objGetMISData = objportalService.getMisData(partner, month, month2, type, source);
+			LOGGER.info("INSIDE TYPE 2");
+
+		} else if (type == 1) {
+			LOGGER.info("INSIDE TYPE 1");
+
+			if (source == 20) {
+				LOGGER.info("INSIDE web Games");
+				objGetMISData = objportalService.getMisDataWeb(partner, month, month2, type, source);
+
+			} else if (source == 24) {
+				LOGGER.info("INSIDE APP Games");
+				objGetMISData = objportalService.getMisData1(partner, month, month2, type, source);
+
+			} else {
+				LOGGER.info("INSIDE non-web Games");
+				objGetMISData = objportalService.getMisDataWeb(partner, month, month2, type, source);
+
+				objGetMISData2 = objportalService.getMisData1(partner, month, month2, type, source);
+				objGetMISData.addAll(objGetMISData2);
+			}
+			LOGGER.info("Herehere3");
+
+		} else {
+
+			if (source == 20) {
+				LOGGER.info("INSIDE web Games");
+				objGetMISData = objportalService.getMisData(partner, month, month2, type, source);
+				objGetMISDataweb = objportalService.getMisDataWeb(partner, month, month2, type, source);
+				objGetMISData.addAll(objGetMISDataweb);
+
+			} else if (source == 24) {
+				LOGGER.info("INSIDE APP Games");
+				objGetMISData = objportalService.getMisData(partner, month, month2, type, source);
+				objGetMISData2 = objportalService.getMisData1(partner, month, month2, type, source);
+				objGetMISData.addAll(objGetMISData2);
+
+			} else {
+				objGetMISData = objportalService.getMisData(partner, month, month2, type, source);
+				objGetMISDataweb = objportalService.getMisDataWeb(partner, month, month2, type, source);
+
+				objGetMISData2 = objportalService.getMisData1(partner, month, month2, type, source);
+				objGetMISData.addAll(objGetMISData2);
+				objGetMISData.addAll(objGetMISDataweb);
+				LOGGER.info("In ALl  CASE");
+			}
+
+		}
+		ArrayList<IUserDetail> listParter = (ArrayList<IUserDetail>) session.getAttribute("listuser");
+		Iterator<Object> it2 = objGetMISData.iterator();
+		System.out.println("MSize:" + it2.hasNext());
+		long total_usage = 0;
+		while (it2.hasNext()) {
+			misuser misObj = new misuser();
+
+			Object[] obj = (Object[]) it2.next();
+
+			misObj.setForegroundTime(obj[0] != null ? Long.valueOf(obj[0].toString()) : 0);
+
+			misObj.setAppName(obj[1] != null ? obj[1].toString() : "0");
+			// misObj.setDateTime(obj[2] != null ? obj[2].toString() : "0");
+			misObj.setPackageName(
+					obj[2] != null ? (obj[2].toString().equals("24") ? "App" : "Web/WAP") : "Not Available");
+			misObj.setAppId(obj[3] != null ? Integer.valueOf(obj[3].toString()) : 0);
+			misObj.setType(obj[5] != null ? Integer.valueOf(obj[5].toString()) : 0);
+			Long cpid = obj[4] != null ? Long.valueOf(obj[4].toString()) : 0;
+			misObj.setCpid(Integer.valueOf(cpid.toString()));
+			if (listParter != null) {
+				for (IUserDetail is : listParter) {
+					if (is.getUid() == cpid) {
+						misObj.setDateTime(is.getCompany());
+						break;
+
+					}
+				}
+			} else {
+
+				misObj.setDateTime((String) session.getAttribute("cpname"));
+			}
+			total_usage = total_usage + Long.valueOf(obj[0].toString());
+			LOGGER.info("getForegroundTime:" + misObj.getForegroundTime() + "| getAppName:" + misObj.getAppName());
+			LOGGER.info("total_usage:1:" + total_usage + " Partner name " + misObj.getDateTime());
+
+			misuser.add(misObj);
+		}
+		model.addAttribute("totalUsage", total_usage);
+
+		/////////////////////////
+		// objGetMISData = objportalService.getMisData(partner, month, month2, type,
+		///////////////////////// source);
+
+		model.addAttribute("misuser", misuser);
+		model.addAttribute("partner", partner);
+		model.addAttribute("month", month);
+		model.addAttribute("month2", month2);
+		model.addAttribute("type", type);
+		model.addAttribute("source", source != null ? source : 0);
+
+		// model.addAttribute("type", type);
+
+		return "welcome";
+
+		// SELECT uid,company from iuser_detail(uid is cp id here)
+
+		// return "index";
+	}
+
+	@RequestMapping(value = "/content", method = RequestMethod.GET)
+	public String contentDetails(Model model, HttpSession session, @RequestParam("id") Integer id,
+			@RequestParam("datefrom") String datefrom, @RequestParam("dateto") String dateto,
+			@RequestParam(value = "type") Integer type, @RequestParam(value = "source") String source) {
+		if (session.getAttribute("success") == null) {
+			LOGGER.error("/misdetails -Session Closed Already-Please Login again  !!!");
+
+			model.addAttribute("error", "Please Login here  !!!");
+			return "index";
+
+		}
+		List<Object> objGetMISData = new ArrayList<Object>();
+		List<misuser> misuser = new ArrayList<misuser>();
+		ArrayList<IUserDetail> listParter = (ArrayList<IUserDetail>) session.getAttribute("listuser");
+
+		long total_usage = 0;
+
+		if (type == 2) {
+			objGetMISData = objportalService.getMisDataContent(id, datefrom, dateto, type, 0);
+			Iterator<Object> it2 = objGetMISData.iterator();
+			System.out.println("MSize:" + it2.hasNext());
+
+			while (it2.hasNext()) {
+				misuser misObj = new misuser();
+
+				Object[] obj = (Object[]) it2.next();
+
+				misObj.setForegroundTime(obj[0] != null ? Long.valueOf(obj[0].toString()) : 0);
+				misObj.setAppName(obj[1] != null ? obj[1].toString() : "0");
+
+				misObj.setPackageName(obj[2] != null ? obj[2].toString() : "0");
+
+				// misObj.setPackageName(
+				// obj[3] != null ? Integer.valueOf(obj[0].toString() : "Not Available");
+				misObj.setId(obj[5] != null ? Integer.valueOf(obj[5].toString()) : 0);
+				misObj.setType(obj[3] != null ? Integer.valueOf(obj[3].toString()) : 0);
+
+				total_usage = total_usage + Long.valueOf(obj[0].toString());
+				LOGGER.info("getForegroundTime:" + misObj.getForegroundTime() + "| getAppName:" + misObj.getAppName()
+						+ "| Content Name " + misObj.getPackageName());
+				LOGGER.info("total_usage:1:" + total_usage);
+				Long cpid = obj[4] != null ? Long.valueOf(obj[4].toString()) : 0;
+				misObj.setPackageName(obj[2] != null ? obj[2].toString() : "0");
+				// LOGGER.info("cType:" + misObj.getDateTime());
+
+				misObj.setCpid(Integer.valueOf(cpid.toString()));
+				if (listParter != null) {
+					for (IUserDetail is : listParter) {
+						if (is.getUid() == cpid) {
+							misObj.setDateTime(is.getCompany());
+							break;
+
+						}
+					}
+				} else {
+
+					misObj.setDateTime((String) session.getAttribute("cpname"));
+				}
+				misuser.add(misObj);
+			}
+
+		} else if (type == 1) {
+
+			// objGetMISData = objportalService.getMisDataContentG(id, datefrom, dateto,
+			// type, 0);
+			if (source.trim().equalsIgnoreCase("App")) {
+				objGetMISData = objportalService.getMisDataContentG(id, datefrom, dateto, type, 0);
+			} else {
+				objGetMISData = objportalService.getMisDataWebC(id, datefrom, dateto, type, 0);
+			}
+			Iterator<Object> it2 = objGetMISData.iterator();
+			System.out.println("MSize:" + it2.hasNext());
+			while (it2.hasNext()) {
+				misuser misObj = new misuser();
+
+				Object[] obj = (Object[]) it2.next();
+
+				misObj.setForegroundTime(obj[0] != null ? Long.valueOf(obj[0].toString()) : 0);
+
+				misObj.setAppName(obj[1] != null ? obj[1].toString() : "0");
+				// misObj.setDateTime(obj[2] != null ? obj[2].toString() : "0");
+				misObj.setPackageName(
+						obj[2] != null ? (obj[2].toString().equals("24") ? "App" : "Web/WAP") : "Not Available");
+				misObj.setAppId(obj[3] != null ? Integer.valueOf(obj[3].toString()) : 0);
+				misObj.setType(obj[5] != null ? Integer.valueOf(obj[5].toString()) : 0);
+				Long cpid = obj[4] != null ? Long.valueOf(obj[4].toString()) : 0;
+				misObj.setCpid(Integer.valueOf(cpid.toString()));
+				if (listParter != null) {
+					for (IUserDetail is : listParter) {
+						if (is.getUid() == cpid) {
+							misObj.setDateTime(is.getCompany());
+							break;
+
+						}
+					}
+				} else {
+
+					misObj.setDateTime((String) session.getAttribute("cpname"));
+				}
+				total_usage = total_usage + Long.valueOf(obj[0].toString());
+				LOGGER.info("getForegroundTime:" + misObj.getForegroundTime() + "| getAppName:" + misObj.getAppName());
+				LOGGER.info("total_usage:1:" + total_usage + " Partner name " + misObj.getDateTime());
+
+				misuser.add(misObj);
+			}
+		}
+
+		else {
+
+		}
+		model.addAttribute("totalUsage", total_usage);
+
+		model.addAttribute("misuser", misuser);
+		model.addAttribute("partner", id);
+		model.addAttribute("month", datefrom);
+		model.addAttribute("month2", dateto);
+		model.addAttribute("type", type);
+		// model.addAttribute("source", source!=null?source:0);
+		return "content";
+	}
+}
